@@ -11,12 +11,9 @@
                 Address: {{ user.customer.address }}<br>
                 Email: {{ user.email }}
             </p>
-            <h4>Orders:</h4>
-            <ul>
-                {% for order in user.customer.order_set.all %}
-                <li>{{ order.product }} - {{ order.quantity }} units</li>
-                {% endfor %}
-            </ul>
+            <div class="text-right">
+                <a href="{% url 'customer:customer_list' %}" class="btn btn-primary">Back</a>
+            </div>
         </div>
     </div>
 {% endblock %}

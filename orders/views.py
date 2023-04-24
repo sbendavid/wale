@@ -1,6 +1,7 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
-from .models import OrderItem
+from django.contrib.auth.models import User
+from .models import OrderItem, Order
 from .forms import OrderCreateForm
 from cart.cart import Cart
 
@@ -31,3 +32,20 @@ def order_create(request):
             {'cart': cart, 'form': form})
     except Exception as e:
         return HttpResponse("Error: {}".format(str(e)), status=500)
+    
+def order_list(request):
+    try:
+        orders = Order.objects.all()
+        return render(request, 'orders/order/list.html', {'orders' : orders})
+    except Exception as e:
+        return HttpResponse("Error: {}".format(str(e)), status=500)
+
+def order_detail(request, id):
+    try:
+        order = get_object_or_404(Order, id=id)
+        customer = order.customer
+        user = get_object_or_404(User, id=customer.pk)
+        order_items = OrderItem.objects.filter(order_id=order.id)
+        return render(request, 'orders/order/detail.html', {'order' : order, 'user': user, 'order_items': order_items})
+    except Exception as e:
+            return HttpResponse("Error: {}".format(str(e)), status=500)

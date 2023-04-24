@@ -19,7 +19,7 @@ def cart_add(request, product_id):
             cart.add(
                 product=product, 
                 quantity=cd['quantity'], 
-                override_quantity=cd['override'])
+                update_quantity=cd['update'])
         return redirect('cart:cart_detail')
     except Exception as e:
         return HttpResponse("Error: {}".format(str(e)), status=500)
@@ -38,9 +38,9 @@ def cart_detail(request):
     try:
         cart = Cart(request)
         for item in cart:
-            item['update_quantity_form'] = CartAddProductForm(initial={
-            'quantity': item['quantity'],
-            'override': True})
+            item['update_quantity_form'] = CartAddProductForm(
+                initial={'quantity': item['quantity'], 
+                        'update': True})
         return render(request, 'cart/detail.html', {'cart': cart})
     except Exception as e:
         return HttpResponse("Error: {}".format(str(e)), status=500)

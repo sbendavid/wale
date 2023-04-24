@@ -9,7 +9,7 @@ from django.http import HttpResponse
 def customer_list(request):
     try:
         user = request.user
-        if user.is_authenticated & user.is_staff:
+        if user.is_authenticated and user.is_staff:  # Update the condition here
             users = User.objects.all()
             return render(request, 'customer/list.html', {'users' : users})
         else:

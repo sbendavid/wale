@@ -4,7 +4,13 @@
 
 {% block content %}
 
-    <h1>Dashboard</h1>
-    <p>Welcome to your dashboard.</p>
-
+    <h2>Most Common Items Sold</h2>
+    <ul>
+        {% for name, count in most_common_items %}
+            <li>{{ name }}: {{ count }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Bar Plot of Most Common Items Sold</h3>
+    <img src="data:image/png;base64,{{ plot_base64 }}" alt="Most Common Items Sold">
+    
 {% endblock %}
