@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
+from django.db.models import Q
 from .models import Category, Product
-from cart.forms import CartAddProductForm
-from django.contrib.postgres.search import SearchVector
+from basket.forms import BasketAddProductForm
 from store.forms import SearchForm
 
 # Create your views here.
@@ -19,13 +19,15 @@ def product_list(request, category_slug=None):
                 slug=category_slug)
             products = products.filter(category=category)
 
-        return render(request,
-            'store/product/list.html',
-            {'category': category,
+        context = {
+            'category': category, 
             'categories': categories,
-            'products': products})
+            'products': products
+            }
+
+        return render(request, 'store/product_list.html', context)
     except Exception as e:
-        return HttpResponse("Error: {}".format(str(e)), status=500)
+        return HttpResponse(f"Error: {str(e)}", status=500)
 
 def product_detail(request, id, slug):
     try:
@@ -34,31 +36,37 @@ def product_detail(request, id, slug):
             id=id,
             slug=slug,
             available=True)
-        cart_product_form = CartAddProductForm()
+        basket_product_form = BasketAddProductForm()
 
-        return render(request,
-            'store/product/detail.html',
-            {'product': product,
-            'cart_product_form': cart_product_form})
+        context = {
+            'product': product, 
+            'basket_product_form': basket_product_form
+            }
+
+        return render(request, 'store/product_detail.html', context)
     except Exception as e:
-        return HttpResponse("Error: {}".format(str(e)), status=500)
+        return HttpResponse(f"Error: {str(e)}", status=500)
 
 def product_search(request):
     try:
-        form = SearchForm()
-        query = None
-        results = []
-        if 'query' in request.GET:
-            form = SearchForm(request.GET)
-            if form.is_valid():
-                query = form.cleaned_data['query']
-                results = Product.objects.annotate(
-                    search=SearchVector('name'),
-                    ).filter(search=query)
-        return render(request,
-                        'store/product/search.html',
-                        {'form': form,
-                        'query': query,
-                        'results': results})
+        search = request.GET.get('search')
+        products = []
+
+        if search:
+            search_list = search.split()
+            q = Q()
+            for word in search_list:
+                q |= Q(name__icontains=word) | Q(description__icontains=word)
+            products = Product.objects.filter(q)
+
+        form = SearchForm(initial={'search_query': search})
+
+        context = {
+            'form': form,
+            'products': products,
+            'search': search,
+        }
+
+        return render(request, 'store/product_search.html', context)
     except Exception as e:
-        return HttpResponse("Error: {}".format(str(e)), status=500)
+        return HttpResponse(f"Error: {str(e)}", status=500)

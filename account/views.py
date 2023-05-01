@@ -1,70 +1,89 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
-import io
-import base64
-from django.shortcuts import render
+import json
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse
-from django.db.models import Count, Sum
-from customer.models import Customer 
-from orders.models import Order, OrderItem
+from django.db.models import Count
+from django.db.models.functions import TruncMonth
+from orders.models import Order
+from store.models import Product
+from .forms import LoginForm, UserRegistrationForm
 
 # Create your views here.
 
 @login_required
 def dashboard(request):
     try:
-        # Get the most common items sold
-        most_common_items = OrderItem.objects.values('product__name').annotate(total_sold=Count('product')).order_by('-total_sold')[:10]
+        orders_by_month = (
+            Order.objects
+            .annotate(month=TruncMonth('created'))
+            .values('month')
+            .annotate(total_orders=Count('id'))
+            .order_by('month')
+        )
 
-        # Get the distribution of customers by country
-        customer_distribution = Customer.objects.values('order').annotate(total_customers=Count('user_id'))
+        products_by_month = (
+            Product.objects
+            .annotate(month=TruncMonth('created'))
+            .values('month')
+            .annotate(total_products=Count('order_items', distinct=True))
+            .order_by('month')
+        )
 
-        # Get the order count and total amount by date
-        order_data = Order.objects.values('created').annotate(order_count=Count('id'), total_amount=Sum('items'))
+        customers_by_month = (
+            Order.objects
+            .annotate(month=TruncMonth('created'))
+            .values('month')
+            .annotate(total_customers=Count('customer', distinct=True))
+            .order_by('month')
+        )
 
-        # Convert the data to lists for plotting
-        most_common_items_names = [item['product__name'] for item in most_common_items]
-        most_common_items_counts = [item['total_sold'] for item in most_common_items]
-
-        customer_countries = [customer['order'] for customer in customer_distribution]
-        customer_counts = [customer['total_customers'] for customer in customer_distribution]
-
-        order_dates = [order['created'] for order in order_data]
-        order_counts = [order['order_count'] for order in order_data]
-        order_amounts = [order['total_amount'] for order in order_data]
-
-        # Create bar plot for most common items sold
-        plt.figure(figsize=(10, 6))
-        sns.barplot(x=most_common_items_names, y=most_common_items_counts)
-        plt.title('Most Common Items Sold')
-        plt.xlabel('Product')
-        plt.ylabel('Total Sold')
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-
-        # Save plot to buffer
-        buffer = io.BytesIO()
-        plt.savefig(buffer, format='png')
-        buffer.seek(0)
-        plot_data = buffer.getvalue()
-        buffer.close()
-
-        # Encode plot data to base64 for embedding in HTML
-        plot_base64 = base64.b64encode(plot_data).decode('utf-8')
-
-        context = {
-            'most_common_items_names': most_common_items_names,
-            'most_common_items_counts': most_common_items_counts,
-            # 'customer_countries': customer_countries,
-            'customer_counts': customer_counts,
-            'order_dates': order_dates,
-            'order_counts': order_counts,
-            'order_amounts': order_amounts,
-            'plot_base64': plot_base64
+        labels = [o['month'].strftime('%Y-%m') for o in orders_by_month]
+        data = {
+            'orders': [o['total_orders'] for o in orders_by_month],
+            'products': [p['total_products'] for p in products_by_month],
+            'customers': [c['total_customers'] for c in customers_by_month],
         }
 
-        return render(request, 'account/dashboard.html', context)
+        chart_data = {'labels': labels, 'data': data}
+
+        return render(request, 'account/dashboard.html', {'chart_data': json.dumps(chart_data)})
 
     except Exception as e:
-        return HttpResponse("Error: {}".format(str(e)), status=500)
+        return HttpResponse(f"Error: {str(e)}", status=500)
+
+def user_login(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            user = authenticate(request, username=cd['username'], password=cd['password'])
+            if user is not None:
+                if user.is_active:
+                    login(request, user)
+                    return redirect('store:product_list')
+                else:
+                    return HttpResponse('Disabled account')
+            else:
+                return HttpResponse('Invalid login')
+    else:
+        form = LoginForm()
+    return render(request, 'account/login.html', {'form': form})
+
+
+def user_logout(request):
+    logout(request)
+    return redirect('store:product_list')
+
+
+def sign_up(request):
+    if request.method == 'POST':
+        user_form = UserRegistrationForm(request.POST)
+        if user_form.is_valid():
+            new_user = user_form.save(commit=False)
+            new_user.set_password(user_form.cleaned_data['password'])
+            new_user.save()
+            return render(request, 'account/sign_up_done.html', {'new_user': new_user})
+    else:
+        user_form = UserRegistrationForm()
+    return render(request, 'account/sign_up.html', {'user_form': user_form})

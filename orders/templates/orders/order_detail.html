@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Order Details{% endblock %}
+
+{% block content %}
+
+    <div class="container mt-5">
+        <h1>Order Details</h1>
+
+        <div class="text-end mt-3">
+            <a href="{% url 'orders:order_list' %}" class="btn btn-primary">Back</a>
+        </div>
+            
+        <p class="mt-4">Order: 
+            This is order <b>{{ order.id }}</b> for <b>{{ user.first_name }} {{ user.last_name }}</b>. The order was placed on: <b>{{ order.created }}</b>
+        </p>
+        
+        <p class="mt-4">The order includes these items:</p>
+        <ul class="list-group mt-4">
+            {% for item in order_items %}
+                <li class="list-group-item">
+                    <p>Quantity: <b>{{ item.quantity }}</b></p>
+                    <p>Item: <b>{{ item.product }}</b></p>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+{% endblock %}

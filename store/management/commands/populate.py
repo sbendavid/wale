@@ -1,13 +1,12 @@
+import csv
 import random
 import decimal
-from datetime import datetime
-from django.db import models
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 from faker import Faker
 from django.utils.text import slugify
 
-from cart.models import Cart
+from basket.models import Basket
 from customer.models import Customer
 from orders.models import OrderItem, Order
 from store.models import Product, Category
@@ -19,8 +18,7 @@ class Command(BaseCommand):
 
         fake = Faker()
 
-        # drop the tables - use this order due to foreign keys - so that we can rerun the file as needed without repeating values
-        Cart.objects.all().delete()
+        Basket.objects.all().delete()
         OrderItem.objects.all().delete()
         Order.objects.all().delete()
         Category.objects.all().delete()
@@ -29,8 +27,6 @@ class Command(BaseCommand):
         User.objects.all().delete()
         print("tables dropped successfully")
 
-        # create some customers
-        # we convert some values from tuples to strings
         for i in range(10):
             first_name = fake.first_name(),
             first_name = str(first_name[0])
@@ -50,73 +46,68 @@ class Command(BaseCommand):
             customer.address = str(customer.address[0])
             customer.save()
 
-        # create some categories
         categories = []
         for i in range(5):
             category_name = fake.word()
-            category_slug = slugify(category_name)  # generate slug from category name
-            if Category.objects.filter(slug=category_slug).exists():  # check if slug already exists, regenerate if needed
+            category_slug = slugify(category_name)
+            if Category.objects.filter(slug=category_slug).exists():
                 category_slug = slugify(category_name)
             category = Category.objects.create(
                 name=category_name,
-                slug=category_slug  # set the generated slug for the category
+                slug=category_slug
             )
             categories.append(category)
 
-        # create some products
-        products = []
-        for i in range(5):
-            product_name = fake.catch_phrase()
-            product_slug = slugify(product_name)  # generate slug from category name
-            if Product.objects.filter(slug=product_slug).exists():  # check if slug already exists, regenerate if needed
+        csv_file_path = 'data/exoplanets.csv'  # Update this with the path to your CSV file
+        with open(csv_file_path, newline='', encoding="utf8") as file:
+            reader = csv.reader(file, delimiter=",")
+            next(reader)
+            for row in reader:
+                product_name = row[0]
                 product_slug = slugify(product_name)
-            product = Product.objects.create(
-                name=product_name,
-                slug=product_slug,  # set the generated slug for the category
-                price=int(decimal.Decimal(random.randrange(155, 899)) / 100),
-                category=random.choice(categories) # attach a random category to the product
-            )
-            products.append(product)
+                if Product.objects.filter(slug=product_slug).exists():
+                    product_slug = slugify(product_name)
 
-        # create some carts
+                products = Product.objects.create(
+                    name=product_name,
+                    slug=product_slug,
+                    price=int(decimal.Decimal(random.randrange(155, 899)) / 10),
+                    category=random.choice(categories)
+                )
+
         products = list(Product.objects.all())
         for i in range(10):
-            random_id = random.randint(0, len(products) - 1)  # update range to be 0 to len(products) - 1
-            cart = Cart.objects.create(
+            random_id = random.randint(0, len(products) - 1)
+            basket = Basket.objects.create(
                 product=products[random_id],
                 quantity=random.randrange(1, 4),
             )
-            cart.save()
+            basket.save()
 
-        # create some orders
         customers = list(Customer.objects.all())
         for customer in customers:
             order = Order.objects.create(
                 customer=customer,
             )
-            order_items = Cart.objects.filter()  # update filter to use 'created_date' and 'cart_owner' fields
-            for cart_item in order_items:
+            order_items = Basket.objects.filter()
+            for basket_item in order_items:
                 order_item = OrderItem.objects.create(
                     order=order,
-                    product=cart_item.product,
-                    quantity=cart_item.quantity,
-                    price=cart_item.product.price * cart_item.quantity  # set price to be product price multiplied by quantity
+                    product=basket_item.product,
+                    quantity=basket_item.quantity,
+                    price=basket_item.product.price * basket_item.quantity
                 )
                 order_item.save()
             order.save()
 
-
-        # example of creating an OrderItem instance
-        # NOTE: This example is not used in the main part of the code and may need to be revised to properly use it
-        # create an OrderItem instance with a previously created Order and Product instance
-        example_order = Order.objects.first()
-        example_product = Product.objects.first()
-        example_order_item = OrderItem(
-            order=example_order,
-            product=example_product,
+        o_order = Order.objects.first()
+        o_product = Product.objects.first()
+        o_order_item = OrderItem(
+            order=o_order,
+            product=o_product,
             quantity=random.randrange(1, 4),
-            price=example_product.price * random.randrange(1, 4)
+            price=o_product.price * random.randrange(1, 4)
         )
-        example_order_item.save()
+        o_order_item.save()
 
         print("Data loaded successfully")

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="jumbotron mt-4">
+        <h1 class="display-4">Welcome {{ new_user.first_name }}!</h1>
+        <hr class="my-4">
+        <p class="lead">
+            Your account has been successfully created.
+            Now you can <a href="{% url 'account:login' %}" class="btn btn-primary btn-lg">Log in</a>.
+        </p>
+    </div>
+</div>
+
+{% endblock %}

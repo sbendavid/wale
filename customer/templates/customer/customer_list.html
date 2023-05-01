@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer List{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="text-center mb-5">Customer List</h1>
+        <div class="row justify-content-center">
+            {% for user in users %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title"><a href="{% url 'customer:customer_detail' id=user.pk %}">{{ user.first_name }} {{ user.last_name }}</a></h4>
+                        <p class="card-text">
+                            Their username is {{ user.username }} and they live at {{ user.customer.address }}.
+                            You can reach them at {{ user.email }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
