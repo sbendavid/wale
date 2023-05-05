@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.db.models import Q
+from django.urls import reverse
 from .models import Category, Product
 from basket.forms import BasketAddProductForm
 from store.forms import SearchForm
@@ -31,11 +32,16 @@ def product_list(request, category_slug=None):
 
 def product_detail(request, id, slug):
     try:
-        product = get_object_or_404(
-            Product,
-            id=id,
-            slug=slug,
-            available=True)
+        product = get_object_or_404(Product, id=id, available=True)
+
+        if slug != product.slug:
+            if not slug:
+                return HttpResponseRedirect(
+                    reverse('product_detail', args=[product.id, product.slug]))
+            else:
+                return HttpResponseRedirect(
+                    reverse('product_detail', args=[product.id, product.get_slug()]))
+            
         basket_product_form = BasketAddProductForm()
 
         context = {

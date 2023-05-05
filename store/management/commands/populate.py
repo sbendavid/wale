@@ -63,7 +63,7 @@ class Command(BaseCommand):
             reader = csv.reader(file, delimiter=",")
             next(reader)
             for row in reader:
-                product_name = row[1]
+                product_name = row[0]
                 product_slug = slugify(product_name)
                 if Product.objects.filter(slug=product_slug).exists():
                     product_slug = slugify(product_name)
