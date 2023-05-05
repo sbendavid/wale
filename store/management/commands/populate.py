@@ -58,12 +58,12 @@ class Command(BaseCommand):
             )
             categories.append(category)
 
-        csv_file_path = 'data/exoplanets.csv'  # Update this with the path to your CSV file
+        csv_file_path = 'data/googleplaystore.csv'
         with open(csv_file_path, newline='', encoding="utf8") as file:
             reader = csv.reader(file, delimiter=",")
             next(reader)
             for row in reader:
-                product_name = row[0]
+                product_name = row[1]
                 product_slug = slugify(product_name)
                 if Product.objects.filter(slug=product_slug).exists():
                     product_slug = slugify(product_name)
